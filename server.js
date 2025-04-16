@@ -28,6 +28,14 @@ const incomingMessageHandler = async (req, res) => {
   else if (messageBody = 'STATS') {
     twiml.message(`You have sent ${count + 1} messages to this number.`)
   }
+  else if (messageBody === 'GEO') {
+    const fromCity = req.body.FromCity
+    const fromState = req.body.FromState
+    const fromZip = req.body.FromZip
+    const fromCountry = req.body.FromCountry
+
+    twiml.message(`Your location is ${fromCity}, ${fromState}, ${fromZip}, ${fromCountry}.`)
+  }
   else if (hasValidZipCode(messageBody) === true) {
     const zipCode = parseZipCode(messageBody)
     twiml.message(`Thanks! We found a clinic near you. The zip code you provided is ${zipCode}.`)
