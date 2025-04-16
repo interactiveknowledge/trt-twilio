@@ -21,7 +21,7 @@ const incomingMessageHandler = async (req, res) => {
   if (messageBody === 'LOCATE') {
     twiml.message('We can do that! This is The Right Time clinic finder. Please send your zip code to find a clinic near you.')
   }
-  else if (messageBody = 'STATS') {
+  else if (messageBody === 'STATS') {
     // twiml.message(`You have sent ${count + 1} messages to this number.`)
   }
   else if (messageBody === 'GEO') {
