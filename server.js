@@ -4,25 +4,25 @@ const bodyParser = require('body-parser')
 const { getNumberDbCount, hasValidZipCode, parseZipCode } = require('./utilities.js')
 
 // Redis
-const redis = require('redis')
-const redisUrl = process.env.REDISCLOUD_URL || 'redis://localhost:6379'
-const client = redis.createClient(redisUrl)
-client.connect().catch(err => {
-  console.error('Redis connection error:', err)
-})
+// const redis = require('redis')
+// const redisUrl = process.env.REDISCLOUD_URL || 'redis://localhost:6379'
+// const client = redis.createClient(redisUrl)
+// client.connect().catch(err => {
+//   console.error('Redis connection error:', err)
+// })
 
 // Handler for incoming messages.
 const incomingMessageHandler = async (req, res) => {
   const twiml = new MessagingResponse()
   const messageBody = req.body.Body
   const from = req.body.From
-  const count = await getNumberDbCount(client, from)
+  // const count = await getNumberDbCount(client, from)
 
   if (messageBody === 'LOCATE') {
     twiml.message('We can do that! This is The Right Time clinic finder. Please send your zip code to find a clinic near you.')
   }
   else if (messageBody = 'STATS') {
-    twiml.message(`You have sent ${count + 1} messages to this number.`)
+    // twiml.message(`You have sent ${count + 1} messages to this number.`)
   }
   else if (messageBody === 'GEO') {
     const fromCity = req.body.FromCity
@@ -38,7 +38,7 @@ const incomingMessageHandler = async (req, res) => {
   }
 
   // Count the number.
-  client.set(from, count + 1)
+  // client.set(from, count + 1)
 
   res.type('text/xml').send(twiml.toString())
 }
