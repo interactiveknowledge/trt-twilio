@@ -11,10 +11,6 @@ client.connect().catch(err => {
   console.error('Redis connection error:', err)
 })
 
-client.on('error', (err) => {
-  console.error('Redis client error:', err)
-})
-
 // Handler for incoming messages.
 const incomingMessageHandler = async (req, res) => {
   const twiml = new MessagingResponse()
