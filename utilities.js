@@ -25,3 +25,23 @@ export const parseZipCode = message => {
 export const hasValidZipCode = message => {
   return parseZipCode(message).length > 0
 }
+
+/**
+ * Get the count of messages sent from a number.
+ *
+ * @param {string} number
+ * @returns number
+ */
+export const getNumberDbCount = async (redisClient, number) => {
+  let dbCount = await redisClient.get(number, (err, value) => value || 0)
+
+  if (dbCount === null) {
+    dbCount = 0
+  }
+
+  if (typeof dbCount === 'string') {
+    dbCount = parseInt(dbCount)
+  }
+
+  return dbCount
+}

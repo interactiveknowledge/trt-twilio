@@ -1,43 +1,42 @@
 const express = require('express')
 const { MessagingResponse } = require('twilio').twiml
 const bodyParser = require('body-parser')
-const { hasValidZipCode, parseZipCode } = require('./utilities.js')
+const { getNumberDbCount, hasValidZipCode, parseZipCode } = require('./utilities.js')
+
+// Redis
 const redis = require('redis')
 const redisUrl = process.env.REDISCLOUD_URL || 'redis://localhost:6379'
 const client = redis.createClient(redisUrl)
+client.connect().catch(err => {
+  console.error('Redis connection error:', err)
+})
+
+client.on('error', (err) => {
+  console.error('Redis client error:', err)
+})
 
 // Handler for incoming messages.
-const incomingMessageHandler = (req, res) => {
-  // Get message body.
-  const messageBody = req.body.Body
+const incomingMessageHandler = async (req, res) => {
   const twiml = new MessagingResponse()
+  const messageBody = req.body.Body
   const from = req.body.From
+  const count = await getNumberDbCount(from)
 
   if (messageBody === 'LOCATE') {
     twiml.message('We can do that! This is The Right Time clinic finder. Please send your zip code to find a clinic near you.')
   }
   else if (messageBody = 'STATS') {
-    client.get(from, (err, value) => {
-      twiml.message(`You have sent ${parseInt(value) + 1} messages to us.`)
-    })
+    twiml.message(`You have sent ${count + 1} messages to this number.`)
   }
   else if (hasValidZipCode(messageBody) === true) {
     const zipCode = parseZipCode(messageBody)
     twiml.message(`Thanks! We found a clinic near you. The zip code you provided is ${zipCode}.`)
   }
 
+  // Count the number.
+  client.set(from, count + 1)
+
   res.type('text/xml').send(twiml.toString())
-
-  // Increment the message count for the user.
-  client.get(from, (err, value) => {
-    if (err) {
-      console.error(err)
-      return
-    }
-
-    const count = parseInt(value) + 1
-    client.set(from, count)
-  })
 }
 
 // Set up server.
