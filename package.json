@@ -1,0 +1,29 @@
+{
+  "name": "trt-twilio",
+  "version": "0.0.1",
+  "description": "Clinic Finder over Twilio SMS.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "start-dev": "PORT=3000 NODE_ENV=development node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/interactiveknowledge/trt-twilio.git"
+  },
+  "author": "Philip Curley <philip@interactiveknowledge.com>",
+  "license": "All rights reserved",
+  "bugs": {
+    "url": "https://github.com/interactiveknowledge/trt-twilio/issues"
+  },
+  "homepage": "https://github.com/interactiveknowledge/trt-twilio#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0",
+    "twilio": "^5.5.2"
+  },
+  "engine": {
+    "node": "22.x"
+  }
+}
