@@ -16,7 +16,7 @@ const incomingMessageHandler = async (req, res) => {
   const twiml = new MessagingResponse()
   const messageBody = req.body.Body
   const from = req.body.From
-  const count = await getNumberDbCount(from)
+  const count = await getNumberDbCount(client, from)
 
   if (messageBody === 'LOCATE') {
     twiml.message('We can do that! This is The Right Time clinic finder. Please send your zip code to find a clinic near you.')
