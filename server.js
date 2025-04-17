@@ -32,6 +32,11 @@ const incomingMessageHandler = async (req, res) => {
 
     twiml.message(`Your location is ${fromCity}, ${fromState}, ${fromZip}, ${fromCountry}.`)
   }
+  else if (messageBody === 'TWO') {
+    // Send two messages to user.
+    twiml.message('I can do that!')
+    twiml.message('This is the second message part.')
+  }
   else if (hasValidZipCode(messageBody) === true) {
     const zipCode = parseZipCode(messageBody)
     twiml.message(`Thanks! We found a clinic near you. The zip code you provided is ${zipCode}.`)
