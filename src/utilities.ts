@@ -4,10 +4,9 @@
  * @param {string} message
  * @returns string
  */
-export const parseZipCode = message => {
+export const parseZipCode = (message: string) => {
   const zipCodePattern = /\d{5}/
-  if (zipCodePattern.test(message.toString())) {
-
+  if (typeof message === 'string' && zipCodePattern.test(message.toString())) {
     const numbers = message.toString().match(/\d{5}/g).pop()
 
     return numbers
@@ -22,7 +21,11 @@ export const parseZipCode = message => {
  * @param {string} message
  * @returns boolean
  */
-export const hasValidZipCode = message => {
+export const hasValidZipCode = (message: string) => {
+  if (typeof message !== 'string') {
+    return false
+  }
+
   return parseZipCode(message).length > 0
 }
 
@@ -32,8 +35,8 @@ export const hasValidZipCode = message => {
  * @param {string} number
  * @returns number
  */
-export const getNumberDbCount = async (redisClient, number) => {
-  let dbCount = await redisClient.get(number, (err, value) => value || 0)
+export const getNumberDbCount = async (redisClient: any, number: number) => {
+  let dbCount = await redisClient.get(number, (err: Error, value: number) => value || 0)
 
   if (dbCount === null) {
     dbCount = 0
