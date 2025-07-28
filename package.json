@@ -22,7 +22,7 @@
     "body-parser": "^2.2.0",
     "express": "^5.1.0",
     "redis": "^4.7.0",
-    "twilio": "^5.5.2"
+    "twilio": "^5.8.0"
   },
   "engine": {
     "node": "22.x"
