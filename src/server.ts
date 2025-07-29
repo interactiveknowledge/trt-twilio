@@ -3,10 +3,11 @@ import MessagingResponse from 'twilio/lib/twiml/MessagingResponse'
 import dotenv from 'dotenv'
 dotenv.config()
 import bodyParser from 'body-parser'
-import { buildLocationObject, makeBedsiderApiRequest, getNumberDbCount, hasValidZipCode, parseZipCode } from './utilities'
+import { buildLocationObject, makeBedsiderApiRequest, getNumberDbCount, hasValidZipCode, parseZipCode, createZipCodeParser, getZipCodeState, isZipCodeInMissouri } from './utilities'
 import parsePhoneNumberFromString from 'libphonenumber-js'
 import { createClient } from 'redis'
 import { EndUserLocation } from './interfaces/EndUserLocation'
+import { ZipCode } from './interfaces/ZipCode'
 
 // Redis/valkey setup.
 const redisUrl = process.env.REDISCLOUD_URL || 'redis://localhost:6379'
@@ -23,6 +24,16 @@ client.connect()
   console.error('Redis/Valkey connection error:', err)
   valKeyConnected = false
 })
+
+// Prepare ZIP codes.
+let zipCodesReady = false
+const zipCodes: ZipCode[] = []
+createZipCodeParser(zipCodes)
+  .on('end', (rowCount: string) => {
+    console.log(`Parsed ${rowCount} ZIP codes.`)
+    zipCodesReady = true
+  })
+  .on('error', (error) => console.error(error))
 
 // Handle incoming messages and determine appropriate response.
 const handleMessage = async (
@@ -44,17 +55,22 @@ const handleMessage = async (
 
     // Determine the appropriate response based on keyword.
     if (messageBody === 'LOCATE' || messageBody === 'FIND') {
-      const responseData = await makeBedsiderApiRequest(location.zip)
-      const { clinics } = responseData
-      if (clinics.length > 0) {
-        // Sort clinics by miles_from_query_location then return the closest.
-        clinics.sort((a: any, b: any) => a.miles_from_query_location - b.miles_from_query_location)
-        const closestClinic = clinics[0]
-        const phoneNumber = parsePhoneNumberFromString(closestClinic.phone, {
-          defaultCountry: 'US',
-          defaultCallingCode: '1'
-        })
-        messages.push(`We found a nearby clinic to your location ${location.zip}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}. If this location is not correct reply with a closer 5-digit ZIP code.`)
+      if (isZipCodeInMissouri(location.zip, zipCodes) === false) {
+        messages.push(`Your number is not tied to a Missouri location. We only provide lists of clinics in that state. Provide a Missouri 5-digit ZIP to find the closest clinic near you.`)
+      }
+      else {
+        const responseData = await makeBedsiderApiRequest(location.zip)
+        const { clinics } = responseData
+        if (clinics.length > 0) {
+          // Sort clinics by miles_from_query_location then return the closest.
+          clinics.sort((a: any, b: any) => a.miles_from_query_location - b.miles_from_query_location)
+          const closestClinic = clinics[0]
+          const phoneNumber = parsePhoneNumberFromString(closestClinic.phone, {
+            defaultCountry: 'US',
+            defaultCallingCode: '1'
+          })
+          messages.push(`We found a nearby clinic to your location ${location.zip}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}. If this location is not correct reply with a closer 5-digit ZIP code.`)
+        }
       }
     }
     else if (messageBody === 'STATS') {
@@ -70,18 +86,20 @@ const handleMessage = async (
     }
     else if (hasValidZipCode(messageBody) === true) {
       const zipCode = parseZipCode(messageBody)
-      const responseData = await makeBedsiderApiRequest(zipCode)
-      const { clinics } = responseData
-      if (clinics.length > 0) {
-        // Sort clinics by miles_from_query_location then return the closest.
-        clinics.sort((a: any, b: any) => a.miles_from_query_location - b.miles_from_query_location)
-        const closestClinic = clinics[0]
-        const phoneNumber = parsePhoneNumberFromString(closestClinic.phone, {
-          defaultCountry: 'US',
-          defaultCallingCode: '1'
-        })
-        messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}.`)
-      }    
+      if (isZipCodeInMissouri(zipCode, zipCodes) === true) {
+        const responseData = await makeBedsiderApiRequest(zipCode)
+        const { clinics } = responseData
+        if (clinics.length > 0) {
+          // Sort clinics by miles_from_query_location then return the closest.
+          clinics.sort((a: any, b: any) => a.miles_from_query_location - b.miles_from_query_location)
+          const closestClinic = clinics[0]
+          const phoneNumber = parsePhoneNumberFromString(closestClinic.phone, {
+            defaultCountry: 'US',
+            defaultCallingCode: '1'
+          })
+          messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}.`)
+        }   
+      }
     }
 
     messages.forEach(message => {
@@ -102,7 +120,6 @@ const incomingMessageController = async (req: any, res: any) => {
 }
 
 const incomingMessageControllerDev = async (req: any, res: any) => {
-  console.log('req.body:', req.body)
   const messageBody = req.body.message
   const from = req.body.from || ''
   const twimlString = await handleMessage(messageBody, from, req.body.location)

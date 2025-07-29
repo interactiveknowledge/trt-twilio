@@ -1,10 +1,10 @@
-// import fs from 'fs'
-// import path from 'path'
+import fs from 'fs'
+import path from 'path'
 import axios, { AxiosResponse } from 'axios'
-// import { CsvParserStream, parse } from '@fast-csv/parse'
+import { CsvParserStream, parse } from '@fast-csv/parse'
 import { EndUserLocation } from './interfaces/EndUserLocation'
 import { Clinic } from './interfaces/Clinic'
-// import { ZipCode } from './interfaces/ZipCode'
+import { ZipCode } from './interfaces/ZipCode'
 
 /**
 /**
@@ -88,33 +88,45 @@ export const makeBedsiderApiRequest = async (zip: string): Promise<{ clinics: Cl
   return response.data
 }
 
-// export const createZipCodeParser = (zipCodes: ZipCode[]): CsvParserStream<any, ZipCode> => {
-//   const parser = fs.createReadStream(path.join(__dirname, '../files/ZIP_Locale_Detail.csv'))
-//     .pipe(parse({
-//       headers: true,
-//       objectMode: true,
-//     }))
+/**
+ * Creates the parser.
+ */
+export const createZipCodeParser = (zipCodes: ZipCode[]): CsvParserStream<any, ZipCode> => {
+  const parser = fs.createReadStream(path.join(__dirname, '../files/ZIP_Locale_Detail.csv'))
+    .pipe(parse({
+      headers: true,
+      objectMode: true,
+    }))
 
-//   parser.on('data', (record: ZipCode) => {
-//     zipCodes.push(record)
-//   })
+  parser.on('data', (record: ZipCode) => {
+    zipCodes.push(record)
+  })
 
-//   return parser
-// }
+  return parser
+}
 
-// export const getZipCodeState = (zip: string, zipCodes: ZipCode[]): string => {
-//   let search = true
-//   let row = 0
+/**
+ * Get the state associated with the zip code.
+ */
+export const getZipCodeState = (zip: string, zipCodes: ZipCode[]): string => {
+  let search = true
+  let row = 0
 
-//   while (search) {
-//     if (zipCodes[row]['PHYSICAL ZIP'] === zip) {
-//       search = false
-//       console.log(zipCodes[row]['PHYSICAL STATE'])
-//       return zipCodes[row]['PHYSICAL STATE']
-//     }
+  while (search) {
+    if (zipCodes[row]['PHYSICAL ZIP'] === zip) {
+      search = false
+      return zipCodes[row]['PHYSICAL STATE']
+    }
 
-//     row++
-//   }
+    row++
+  }
 
-//   return ''
-// }
+  return ''
+}
+
+/**
+ * Check if the zip code is in Missouri.
+ */
+export const isZipCodeInMissouri = (zip: string, zipCodes: ZipCode[]): boolean => {
+  return getZipCodeState(zip, zipCodes) === 'MO'
+}
