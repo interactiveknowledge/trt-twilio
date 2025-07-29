@@ -47,7 +47,7 @@ const handleMessage = async (
     const twiml = new MessagingResponse()
     let messages = []
 
-    // Get or set up user data.
+    // Get or set up EndUser data.
     const endUser = await getEndUserData(client, messageFrom)
     endUser.count_messages_received++
     endUser.rolling_count_messages_received++
@@ -59,6 +59,7 @@ const handleMessage = async (
       endUser.rolling_count_messages_received = 1
     }
 
+    // Check limits to prevent abuse.
     if (isEndUserWithinMessageLimits(endUser) === false) {
       return ''
     }
@@ -85,6 +86,12 @@ const handleMessage = async (
           })
           const formattedUrl = getClinicFormattedUrl(closestClinic)
           messages.push(`We found a nearby clinic to your location ${location.zip}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl} If this location is not correct reply with a closer 5-digit ZIP code.`)
+
+          // Offer option to find next closest clinic.
+          if (clinics.length > 1) {
+            endUser.next_closest = clinics[1]
+            messages.push(`Would you like to see the next closest clinic? Reply "Y"`)
+          }
         }
       }
     }
@@ -104,9 +111,27 @@ const handleMessage = async (
             defaultCallingCode: '1'
           })
           const formattedUrl = getClinicFormattedUrl(closestClinic)
-          messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}.${formattedUrl}`)
+          messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl}`)
+        
+          // Offer option to find next closest clinic.
+          if (clinics.length > 1) {
+            endUser.next_closest = clinics[1]
+            messages.push(`Would you like to see the next closest clinic? Reply "Y"`)
+          }
         }   
       }
+    }
+    else if (messageBody === 'Y' && endUser.next_closest) {
+      const nextClosest = endUser.next_closest
+      const phoneNumber = parsePhoneNumberFromString(nextClosest.phone, {
+        defaultCountry: 'US',
+        defaultCallingCode: '1'
+      })
+      const formattedUrl = getClinicFormattedUrl(nextClosest)
+      messages.push(`The next closest clinic: ${nextClosest.name}. ${phoneNumber?.formatNational()}.${formattedUrl}`)
+    
+      // reset.
+      endUser.next_closest = null
     }
 
     // Set user data.

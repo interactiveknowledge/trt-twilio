@@ -56,7 +56,8 @@ export const getEndUserData = async (redisClient: any, user: string): Promise<En
       count_api_requests: 0,
       first_message_date: Date.now(),
       rolling_message_date: Date.now(),
-      last_message_date: 0
+      last_message_date: 0,
+      next_closest: null
     }
   }
   else {
@@ -128,7 +129,7 @@ export const getZipCodeState = (zip: string, zipCodes: ZipCode[]): string => {
   let search = true
   let row = 0
 
-  while (search) {
+  while (search && zipCodes[row]) {
     if (zipCodes[row]['PHYSICAL ZIP'] === zip) {
       search = false
       return zipCodes[row]['PHYSICAL STATE']
