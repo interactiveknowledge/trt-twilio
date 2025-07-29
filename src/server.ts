@@ -3,7 +3,7 @@ import MessagingResponse from 'twilio/lib/twiml/MessagingResponse'
 import dotenv from 'dotenv'
 dotenv.config()
 import bodyParser from 'body-parser'
-import { buildLocationObject, makeBedsiderApiRequest, hasValidZipCode, parseZipCode, createZipCodeParser, isZipCodeInMissouri, getEndUserData, setEndUserData } from './utilities'
+import { buildLocationObject, makeBedsiderApiRequest, hasValidZipCode, parseZipCode, createZipCodeParser, isZipCodeInMissouri, getEndUserData, setEndUserData, isEndUserWithinMessageLimits } from './utilities'
 import parsePhoneNumberFromString from 'libphonenumber-js'
 import { createClient } from 'redis'
 import { EndUserLocation } from './interfaces/EndUserLocation'
@@ -50,7 +50,18 @@ const handleMessage = async (
     // Get or set up user data.
     const endUser = await getEndUserData(client, messageFrom)
     endUser.count_messages_received++
-    endUser.last_message = Date.now()
+    endUser.rolling_count_messages_received++
+    endUser.last_message_date = Date.now()
+
+    // If it has been more than 1 day since interaction then reset rolling_message_date and rolling_count_messages_received
+    if (Date.now() - endUser.rolling_message_date > 86400000) {
+      endUser.rolling_message_date = Date.now()
+      endUser.rolling_count_messages_received = 1
+    }
+
+    if (isEndUserWithinMessageLimits(endUser) === false) {
+      return ''
+    }
 
     console.log(`From: ${messageFrom}, Message: ${messageBody}`)
 

@@ -52,9 +52,11 @@ export const getEndUserData = async (redisClient: any, user: string): Promise<En
     endUser = {
       id: user,
       count_messages_received: 0,
+      rolling_count_messages_received: 0,
       count_api_requests: 0,
-      first_message: Date.now(),
-      last_message: 0
+      first_message_date: Date.now(),
+      rolling_message_date: Date.now(),
+      last_message_date: 0
     }
   }
   else {
@@ -143,4 +145,25 @@ export const getZipCodeState = (zip: string, zipCodes: ZipCode[]): string => {
  */
 export const isZipCodeInMissouri = (zip: string, zipCodes: ZipCode[]): boolean => {
   return getZipCodeState(zip, zipCodes) === 'MO'
+}
+
+/**
+ * Check message limits so that abuse is prevented. Return true if within limits.
+ */
+export const isEndUserWithinMessageLimits = (endUser: EndUser): boolean => {
+  // 20 per day.
+  if (endUser.rolling_count_messages_received < 20) {
+    return true
+  }
+
+  const now = Date.now()
+  const period = now - endUser.rolling_message_date
+  const rollingAverage = period / endUser.rolling_count_messages_received
+
+  // Limit to 20 per day 86400000 / 20
+  if (rollingAverage < 4320000) {
+    return false
+  }
+
+  return true
 }
