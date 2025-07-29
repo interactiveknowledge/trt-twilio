@@ -1,5 +1,8 @@
 import axios, { AxiosResponse } from 'axios'
+import { EndUserLocation } from './interfaces/EndUserLocation'
+import { Clinic } from './interfaces/Clinic'
 
+/**
 /**
  * Get the 5 digit zip code from the message.
  */
@@ -53,29 +56,18 @@ export const getNumberDbCount = async (redisClient: any, number: string): Promis
 /**
  * Build a location object.
  */
-export const buildLocationObject = (fromCity: string, fromState: string, fromZip: string, fromCountry: string) => {
+export const buildLocationObject = (
+  fromCity: string,
+  fromState: string,
+  fromZip: string,
+  fromCountry: string
+): EndUserLocation => {
   return {
     city: fromCity,
     state: fromState,
     zip: fromZip,
     country: fromCountry
   }
-}
-
-/**
- * Description of the Clincs from Bedsider API response.
- */
-interface Clinic {
-  id: number,
-  name: string,
-  address_1: string,
-  address_2: string,
-  city: string,
-  state: string,
-  zip: string,
-  country: string,
-  phone: string,
-  miles_from_query_location: number,
 }
 
 /**
