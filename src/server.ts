@@ -102,6 +102,7 @@ const incomingMessageController = async (req: any, res: any) => {
 }
 
 const incomingMessageControllerDev = async (req: any, res: any) => {
+  console.log('req.body:', req.body)
   const messageBody = req.body.message
   const from = req.body.from || ''
   const twimlString = await handleMessage(messageBody, from, req.body.location)
@@ -117,6 +118,7 @@ app.post('/sms', incomingMessageController)
 
 // Endpoint for local development requests.
 if (process.env.NODE_ENV === 'development') {
+  console.log('Development mode enabled.')
   app.use(express.json())
   app.post('/dev/sms', incomingMessageControllerDev)
 }

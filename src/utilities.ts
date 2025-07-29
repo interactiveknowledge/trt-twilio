@@ -1,6 +1,10 @@
+// import fs from 'fs'
+// import path from 'path'
 import axios, { AxiosResponse } from 'axios'
+// import { CsvParserStream, parse } from '@fast-csv/parse'
 import { EndUserLocation } from './interfaces/EndUserLocation'
 import { Clinic } from './interfaces/Clinic'
+// import { ZipCode } from './interfaces/ZipCode'
 
 /**
 /**
@@ -83,3 +87,34 @@ export const makeBedsiderApiRequest = async (zip: string): Promise<{ clinics: Cl
   const response = await axios.get(apiUrl)
   return response.data
 }
+
+// export const createZipCodeParser = (zipCodes: ZipCode[]): CsvParserStream<any, ZipCode> => {
+//   const parser = fs.createReadStream(path.join(__dirname, '../files/ZIP_Locale_Detail.csv'))
+//     .pipe(parse({
+//       headers: true,
+//       objectMode: true,
+//     }))
+
+//   parser.on('data', (record: ZipCode) => {
+//     zipCodes.push(record)
+//   })
+
+//   return parser
+// }
+
+// export const getZipCodeState = (zip: string, zipCodes: ZipCode[]): string => {
+//   let search = true
+//   let row = 0
+
+//   while (search) {
+//     if (zipCodes[row]['PHYSICAL ZIP'] === zip) {
+//       search = false
+//       console.log(zipCodes[row]['PHYSICAL STATE'])
+//       return zipCodes[row]['PHYSICAL STATE']
+//     }
+
+//     row++
+//   }
+
+//   return ''
+// }
