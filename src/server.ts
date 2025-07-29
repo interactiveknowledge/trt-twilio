@@ -120,6 +120,9 @@ const handleMessage = async (
           }
         }   
       }
+      else {
+        messages.push('That is not a valid Missouri ZIP code.')
+      }
     }
     else if (messageBody === 'Y' && endUser.next_closest) {
       const nextClosest = endUser.next_closest
