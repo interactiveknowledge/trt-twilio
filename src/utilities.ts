@@ -5,6 +5,7 @@ import { CsvParserStream, parse } from '@fast-csv/parse'
 import { EndUserLocation } from './interfaces/EndUserLocation'
 import { Clinic } from './interfaces/Clinic'
 import { ZipCode } from './interfaces/ZipCode'
+import { EndUser } from './interfaces/EndUser'
 
 /**
 /**
@@ -41,20 +42,33 @@ export const hasValidZipCode = (message: string) => {
 }
 
 /**
- * Get the count of messages sent from a number.
+ * Get EndUser data from redis. If not found then create a new EndUser object.
  */
-export const getNumberDbCount = async (redisClient: any, number: string): Promise<number> => {
-  let dbCount = await redisClient.get(number, (err: Error, value: number) => value || 0)
+export const getEndUserData = async (redisClient: any, user: string): Promise<EndUser> => {
+  let endUserString = await redisClient.get(user, (err: Error, value: string) => value || null)
+  let endUser: EndUser
 
-  if (dbCount === null) {
-    dbCount = 0
+  if (endUserString === null) {
+    endUser = {
+      id: user,
+      count_messages_received: 0,
+      count_api_requests: 0,
+      first_message: Date.now(),
+      last_message: 0
+    }
+  }
+  else {
+    endUser = JSON.parse(endUserString)
   }
 
-  if (typeof dbCount === 'string') {
-    dbCount = parseInt(dbCount)
-  }
+  return endUser
+}
 
-  return dbCount
+/**
+ * Set EndUser data into redis.
+ */
+export const setEndUserData = async (redisClient: any, user: string, endUser: EndUser) => {
+  await redisClient.set(user, JSON.stringify(endUser))
 }
 
 /**

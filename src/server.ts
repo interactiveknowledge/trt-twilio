@@ -3,7 +3,7 @@ import MessagingResponse from 'twilio/lib/twiml/MessagingResponse'
 import dotenv from 'dotenv'
 dotenv.config()
 import bodyParser from 'body-parser'
-import { buildLocationObject, makeBedsiderApiRequest, getNumberDbCount, hasValidZipCode, parseZipCode, createZipCodeParser, getZipCodeState, isZipCodeInMissouri } from './utilities'
+import { buildLocationObject, makeBedsiderApiRequest, hasValidZipCode, parseZipCode, createZipCodeParser, isZipCodeInMissouri, getEndUserData, setEndUserData } from './utilities'
 import parsePhoneNumberFromString from 'libphonenumber-js'
 import { createClient } from 'redis'
 import { EndUserLocation } from './interfaces/EndUserLocation'
@@ -19,6 +19,9 @@ client.connect()
   .then(() => {
     console.log('Redis/Valkey connected.')
     valKeyConnected = true
+
+    // Delete all keys.
+    client.flushDb()
   })
   .catch((err: Error) => {
   console.error('Redis/Valkey connection error:', err)
@@ -44,12 +47,10 @@ const handleMessage = async (
     const twiml = new MessagingResponse()
     let messages = []
 
-    // Get the number of messages this end-user has sent.
-    let count = 0
-    if (valKeyConnected === true) {
-      count = await getNumberDbCount(client, messageFrom)
-      client.set(messageFrom, count + 1)
-    }
+    // Get or set up user data.
+    const endUser = await getEndUserData(client, messageFrom)
+    endUser.count_messages_received++
+    endUser.last_message = Date.now()
 
     console.log(`From: ${messageFrom}, Message: ${messageBody}`)
 
@@ -60,6 +61,8 @@ const handleMessage = async (
       }
       else {
         const responseData = await makeBedsiderApiRequest(location.zip)
+        endUser.count_api_requests++
+
         const { clinics } = responseData
         if (clinics.length > 0) {
           // Sort clinics by miles_from_query_location then return the closest.
@@ -73,21 +76,12 @@ const handleMessage = async (
         }
       }
     }
-    else if (messageBody === 'STATS') {
-      if (valKeyConnected === true) {
-        twiml.message(`You have sent ${count + 1} messages to this number.`)
-      }
-      else {
-        twiml.message(`Server is not tracking the number of messages you've sent.`)
-      }
-    }
-    else if (messageBody === 'GEO') {
-      messages.push(`Your location is ${location.city}, ${location.state}, ${location.zip}, ${location.country}.`)
-    }
     else if (hasValidZipCode(messageBody) === true) {
       const zipCode = parseZipCode(messageBody)
       if (isZipCodeInMissouri(zipCode, zipCodes) === true) {
         const responseData = await makeBedsiderApiRequest(zipCode)
+        endUser.count_api_requests++
+
         const { clinics } = responseData
         if (clinics.length > 0) {
           // Sort clinics by miles_from_query_location then return the closest.
@@ -102,6 +96,9 @@ const handleMessage = async (
       }
     }
 
+    // Set user data.
+    setEndUserData(client, messageFrom, endUser)
+
     messages.forEach(message => {
       console.log('message:', message)
       twiml.message(message)
@@ -112,18 +109,28 @@ const handleMessage = async (
 
 // Handler for incoming messages.
 const incomingMessageController = async (req: any, res: any) => {
-  const body = req.body.Body
-  const from = req.body.From
-  const location = buildLocationObject(req.body.FromCity, req.body.FromState, req.body.FromZip, req.body.FromCountry)
-  const twimlString = await handleMessage(body, from, location)
-  res.type('text/xml').send(twimlString)
+  if (valKeyConnected && zipCodesReady) {
+    const body = req.body.Body
+    const from = req.body.From
+    const location = buildLocationObject(req.body.FromCity, req.body.FromState, req.body.FromZip, req.body.FromCountry)
+    const twimlString = await handleMessage(body, from, location)
+    res.type('text/xml').send(twimlString)
+  }
+  else {
+    res.type('text/xml').send('<Response></Response>')
+  }
 }
 
 const incomingMessageControllerDev = async (req: any, res: any) => {
-  const messageBody = req.body.message
-  const from = req.body.from || ''
-  const twimlString = await handleMessage(messageBody, from, req.body.location)
-  res.type('text/xml').send(twimlString)
+  if (valKeyConnected && zipCodesReady) {
+    const messageBody = req.body.message
+    const from = req.body.from || ''
+    const twimlString = await handleMessage(messageBody, from, req.body.location)
+    res.type('text/xml').send(twimlString)
+  }
+  else {
+    res.type('text/xml').send('<Response></Response>')
+  }
 }
 
 // Set up server.
