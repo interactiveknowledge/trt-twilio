@@ -4,24 +4,27 @@
   "description": "Clinic Finder over Twilio SMS.",
   "main": "server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -b",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
-    "dev": "PORT=3000 NODE_ENV=development ts-node src/server.ts"
+    "dev": "PORT=3000 NODE_ENV=development node-dev src/server.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/interactiveknowledge/trt-twilio.git"
   },
   "author": "Philip Curley <philip@interactiveknowledge.com>",
-  "license": "All rights reserved",
+  "license": "All rights reserved by Interactive Knowledge, Inc.",
   "bugs": {
     "url": "https://github.com/interactiveknowledge/trt-twilio/issues"
   },
   "homepage": "https://github.com/interactiveknowledge/trt-twilio#readme",
   "dependencies": {
+    "axios": "^1.11.0",
     "body-parser": "^2.2.0",
+    "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "libphonenumber-js": "^1.12.10",
     "redis": "^4.7.0",
     "twilio": "^5.8.0"
   },
@@ -29,7 +32,9 @@
     "node": "22.x"
   },
   "devDependencies": {
+    "@types/express": "^5.0.3",
     "@types/node": "^24.1.0",
+    "node-dev": "^8.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }

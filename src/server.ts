@@ -1,52 +1,86 @@
-const express = require('express')
-const { MessagingResponse } = require('twilio').twiml
-const bodyParser = require('body-parser')
-const { getNumberDbCount, hasValidZipCode, parseZipCode } = require('./utilities.ts')
-
-// Redis
-const redis = require('redis')
+import express, { response } from 'express'
+import MessagingResponse from 'twilio/lib/twiml/MessagingResponse'
+import dotenv from 'dotenv'
+dotenv.config()
+import bodyParser from 'body-parser'
+import { buildLocationObject, makeBedsiderApiRequest, getNumberDbCount, hasValidZipCode, parseZipCode } from './utilities'
+import parsePhoneNumberFromString from 'libphonenumber-js'
+// Redis/valkey setup.
+import { createClient } from 'redis'
 const redisUrl = process.env.REDISCLOUD_URL || 'redis://localhost:6379'
-console.log('redisUrl:', redisUrl)
-const client = redis.createClient(redisUrl)
-client.connect().catch((err: Error) => {
-  console.error('Redis connection error:', err)
+let valKeyConnected = false
+const client = createClient({
+  url: redisUrl
+})
+client.connect()
+  .then(() => {
+    console.log('Redis/Valkey connected.')
+    valKeyConnected = true
+  })
+  .catch((err: Error) => {
+  console.error('Redis/Valkey connection error:', err)
+  valKeyConnected = false
 })
 
+// Handle incoming messages and determine appropriate response.
 const handleMessage = async (
   messageBody: string,
   messageFrom: string,
-  fromCity: string,
-  fromState: string,
-  fromZip: string,
-  fromCountry: string
+  location: { city: string, state: string, zip: string, country: string }
 ) => {
     const twiml = new MessagingResponse()
     let messages = []
 
-    // const count = await getNumberDbCount(client, from)
+    // Get the number of messages this end-user has sent.
+    let count = 0
+    if (valKeyConnected === true) {
+      count = await getNumberDbCount(client, messageFrom)
+      client.set(messageFrom, count + 1)
+    }
 
     console.log(`From: ${messageFrom}, Message: ${messageBody}`)
 
-    if (messageBody === 'LOCATE') {
-      messages.push('We can do that! This is The Right Time clinic finder. Please send your zip code to find a clinic near you.')
+    // Determine the appropriate response based on keyword.
+    if (messageBody === 'LOCATE' || messageBody === 'FIND') {
+      const responseData = await makeBedsiderApiRequest(location.zip)
+      const { clinics } = responseData
+      if (clinics.length > 0) {
+        // Sort clinics by miles_from_query_location then return the closest.
+        clinics.sort((a: any, b: any) => a.miles_from_query_location - b.miles_from_query_location)
+        const closestClinic = clinics[0]
+        const phoneNumber = parsePhoneNumberFromString(closestClinic.phone, {
+          defaultCountry: 'US',
+          defaultCallingCode: '1'
+        })
+        messages.push(`We found a nearby clinic to your location ${location.zip}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}. If this location is not correct reply with a closer 5-digit ZIP code.`)
+      }
     }
     else if (messageBody === 'STATS') {
-      // twiml.message(`You have sent ${count + 1} messages to this number.`)
+      if (valKeyConnected === true) {
+        twiml.message(`You have sent ${count + 1} messages to this number.`)
+      }
+      else {
+        twiml.message(`Server is not tracking the number of messages you've sent.`)
+      }
     }
     else if (messageBody === 'GEO') {
-      messages.push(`Your location is ${fromCity}, ${fromState}, ${fromZip}, ${fromCountry}.`)
-    }
-    else if (messageBody === 'TWO') {
-      messages.push('I can do that!')
-      messages.push('This is the second message part.')
+      messages.push(`Your location is ${location.city}, ${location.state}, ${location.zip}, ${location.country}.`)
     }
     else if (hasValidZipCode(messageBody) === true) {
       const zipCode = parseZipCode(messageBody)
-      messages.push(`Thanks! We found a clinic near you. The zip code you provided is ${zipCode}.`)
+      const responseData = await makeBedsiderApiRequest(zipCode)
+      const { clinics } = responseData
+      if (clinics.length > 0) {
+        // Sort clinics by miles_from_query_location then return the closest.
+        clinics.sort((a: any, b: any) => a.miles_from_query_location - b.miles_from_query_location)
+        const closestClinic = clinics[0]
+        const phoneNumber = parsePhoneNumberFromString(closestClinic.phone, {
+          defaultCountry: 'US',
+          defaultCallingCode: '1'
+        })
+        messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}.`)
+      }    
     }
-
-    // Count the number.
-    // client.set(from, count + 1)
 
     messages.forEach(message => {
       console.log('message:', message)
@@ -60,31 +94,37 @@ const handleMessage = async (
 const incomingMessageController = async (req: any, res: any) => {
   const body = req.body.Body
   const from = req.body.From
-  const fromCity = req.body.FromCity || ''
-  const fromState = req.body.FromState || ''
-  const fromZip = req.body.FromZip || ''
-  const fromCountry = req.body.FromCountry || ''
-  const twimlString = await handleMessage(body, from, fromCity, fromState, fromZip, fromCountry)
+  const location = buildLocationObject(req.body.FromCity, req.body.FromState, req.body.FromZip, req.body.FromCountry)
+  const twimlString = await handleMessage(body, from, location)
   res.type('text/xml').send(twimlString)
 }
 
 const incomingMessageControllerDev = async (req: any, res: any) => {
   const messageBody = req.body.message
-  const from = req.body.from || {}
-  const twimlString = await handleMessage(messageBody, from, '', '', '', '')
+  const from = req.body.from || ''
+  const twimlString = await handleMessage(messageBody, from, req.body.location)
   res.type('text/xml').send(twimlString)
 }
 
 // Set up server.
 const app = express()
-app.use(express.json())
 
+// SMS endpoint for Twilio.
 app.use(bodyParser.urlencoded({ extended: false }))
-
 app.post('/sms', incomingMessageController)
-app.post('/dev/sms', incomingMessageControllerDev)
 
-const port = process.env.PORT || 3000
-app.listen(port, () => {
-  console.log(`Server READY. Listening on port ${port}.`)
-})
+// Endpoint for local development requests.
+if (process.env.NODE_ENV === 'development') {
+  app.use(express.json())
+  app.post('/dev/sms', incomingMessageControllerDev)
+}
+
+if (!process.env.BEDSIDER_API_KEY) {
+  console.error('Error: No Bedsider.org API key found to search for clinics.')
+}
+else {
+  const port = process.env.PORT || 3000
+  app.listen(port, () => {
+    console.log(`Server READY. Listening on port ${port}.`)
+  })
+}
