@@ -5,10 +5,10 @@ dotenv.config()
 import bodyParser from 'body-parser'
 import { buildLocationObject, makeBedsiderApiRequest, getNumberDbCount, hasValidZipCode, parseZipCode } from './utilities'
 import parsePhoneNumberFromString from 'libphonenumber-js'
-// Redis/valkey setup.
 import { createClient } from 'redis'
 import { EndUserLocation } from './interfaces/EndUserLocation'
 
+// Redis/valkey setup.
 const redisUrl = process.env.REDISCLOUD_URL || 'redis://localhost:6379'
 let valKeyConnected = false
 const client = createClient({
