@@ -167,3 +167,26 @@ export const isEndUserWithinMessageLimits = (endUser: EndUser): boolean => {
 
   return true
 }
+
+/**
+ * Formats clinic URL for messaging.
+ * 
+ * Uses therighttime.org link shortener if necessary for shorter URL links.
+ */
+export const getClinicFormattedUrl = (clinic: Clinic): string => {
+  let baseLink = 'https://therighttime.org/c'
+
+  if (clinic.url && clinic.url.length > 0) {
+    const shortLink = `${baseLink}/${btoa(clinic.id.toString())}`
+
+    if (clinic.url.length <= shortLink.length) {
+      return ` ${clinic.url}.`
+    }
+    else {
+      return ` ${shortLink}.`
+    }
+  }
+  else {
+    return ''
+  }
+}

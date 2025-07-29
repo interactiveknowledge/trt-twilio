@@ -12,4 +12,6 @@ export interface Clinic {
   country: string,
   phone: string,
   miles_from_query_location: number,
+  url: string,
+  formatted_url: string,
 }

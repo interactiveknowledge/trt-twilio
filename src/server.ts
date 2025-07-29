@@ -3,7 +3,7 @@ import MessagingResponse from 'twilio/lib/twiml/MessagingResponse'
 import dotenv from 'dotenv'
 dotenv.config()
 import bodyParser from 'body-parser'
-import { buildLocationObject, makeBedsiderApiRequest, hasValidZipCode, parseZipCode, createZipCodeParser, isZipCodeInMissouri, getEndUserData, setEndUserData, isEndUserWithinMessageLimits } from './utilities'
+import { buildLocationObject, makeBedsiderApiRequest, hasValidZipCode, parseZipCode, createZipCodeParser, isZipCodeInMissouri, getEndUserData, setEndUserData, isEndUserWithinMessageLimits, getClinicFormattedUrl } from './utilities'
 import parsePhoneNumberFromString from 'libphonenumber-js'
 import { createClient } from 'redis'
 import { EndUserLocation } from './interfaces/EndUserLocation'
@@ -83,7 +83,8 @@ const handleMessage = async (
             defaultCountry: 'US',
             defaultCallingCode: '1'
           })
-          messages.push(`We found a nearby clinic to your location ${location.zip}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}. If this location is not correct reply with a closer 5-digit ZIP code.`)
+          const formattedUrl = getClinicFormattedUrl(closestClinic)
+          messages.push(`We found a nearby clinic to your location ${location.zip}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl} If this location is not correct reply with a closer 5-digit ZIP code.`)
         }
       }
     }
@@ -102,7 +103,8 @@ const handleMessage = async (
             defaultCountry: 'US',
             defaultCallingCode: '1'
           })
-          messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}.`)
+          const formattedUrl = getClinicFormattedUrl(closestClinic)
+          messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name} in ${closestClinic.city}, ${closestClinic.state}. ${phoneNumber?.formatNational()}.${formattedUrl}`)
         }   
       }
     }
