@@ -130,7 +130,7 @@ export const getZipCodeState = (zip: string, zipCodes: ZipCode[]): string => {
   let row = 0
 
   while (search && zipCodes[row]) {
-    if (zipCodes[row]['PHYSICAL ZIP'] === zip) {
+    if (zipCodes[row]['DELIVERY ZIPCODE'] === zip) {
       search = false
       return zipCodes[row]['PHYSICAL STATE']
     }
