@@ -101,8 +101,8 @@ const handleMessage = async (
           if (clinics.length > 1) {
             endUser.next_closest = clinics[1]
             messageToSend += `
-            
-            Would you like to see the next closest clinic? Reply "Y"`
+
+Would you like to see the next closest clinic? Reply "Y"`
           }
 
           messages.push(messageToSend)
@@ -131,8 +131,8 @@ const handleMessage = async (
           if (clinics.length > 1) {
             endUser.next_closest = clinics[1]
             messageToSend += `
-            
-            Would you like to see the next closest clinic? Reply "Y"`
+
+Would you like to see the next closest clinic? Reply "Y"`
           }
 
           messages.push(messageToSend)
