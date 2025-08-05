@@ -79,7 +79,7 @@ const handleMessage = async (
       }
 
       if (isZipCodeInMissouri(currentZipCode, zipCodes) === false) {
-        messages.push(`Your number is not tied to a Missouri location. We only provide lists of clinics in that state. Provide a Missouri 5-digit ZIP to find the closest clinic near you.`)
+        messages.push(`Please provide a Missouri 5-digit zip to find the closest clinic to you.`)
       }
       else {
         const responseData = await makeBedsiderApiRequest(currentZipCode)
