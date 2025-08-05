@@ -79,7 +79,7 @@ const handleMessage = async (
       }
 
       if (isZipCodeInMissouri(currentZipCode, zipCodes) === false) {
-        messages.push(`Please provide a Missouri 5-digit zip to find the closest clinic to you.`)
+        messages.push(`Please provide a Missouri 5-digit zip to find the clinic closest to you`)
       }
       else {
         const responseData = await makeBedsiderApiRequest(currentZipCode)
