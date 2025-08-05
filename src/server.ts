@@ -67,12 +67,22 @@ const handleMessage = async (
     console.log(`From: ${messageFrom}, Message: ${messageBody}`)
 
     // Determine the appropriate response based on keyword.
-    if (messageBody === 'LOCATE' || messageBody === 'FIND') {
-      if (isZipCodeInMissouri(location.zip, zipCodes) === false) {
+    if (
+      messageBody.toLowerCase().includes('locate') === true ||
+      messageBody.toLowerCase().includes('find') === true
+    ) {
+      let currentZipCode: string = location.zip
+
+      // If a ZIP Code is found it the message then use it.
+      if (hasValidZipCode(messageBody) === false) {
+        currentZipCode = parseZipCode(messageBody)
+      }
+
+      if (isZipCodeInMissouri(currentZipCode, zipCodes) === false) {
         messages.push(`Your number is not tied to a Missouri location. We only provide lists of clinics in that state. Provide a Missouri 5-digit ZIP to find the closest clinic near you.`)
       }
       else {
-        const responseData = await makeBedsiderApiRequest(location.zip)
+        const responseData = await makeBedsiderApiRequest(currentZipCode)
         endUser.count_api_requests++
 
         const { clinics } = responseData
@@ -85,7 +95,7 @@ const handleMessage = async (
             defaultCallingCode: '1'
           })
           const formattedUrl = getClinicFormattedUrl(closestClinic)
-          messages.push(`We found a nearby clinic to your location ${location.zip}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl} If this location is not correct reply with a closer 5-digit ZIP code.`)
+          messages.push(`We found a nearby clinic to your location ${currentZipCode}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl} If this location is not correct reply with a closer 5-digit ZIP code.`)
 
           // Offer option to find next closest clinic.
           if (clinics.length > 1) {
@@ -124,7 +134,7 @@ const handleMessage = async (
         messages.push('That is not a valid Missouri ZIP code.')
       }
     }
-    else if (messageBody === 'Y' && endUser.next_closest) {
+    else if (messageBody.toLowerCase() === 'y' && endUser.next_closest) {
       const nextClosest = endUser.next_closest
       const phoneNumber = parsePhoneNumberFromString(nextClosest.phone, {
         defaultCountry: 'US',
