@@ -74,7 +74,7 @@ const handleMessage = async (
       let currentZipCode: string = location.zip
 
       // If a ZIP Code is found it the message then use it.
-      if (hasValidZipCode(messageBody) === false) {
+      if (hasValidZipCode(messageBody) === true) {
         currentZipCode = parseZipCode(messageBody)
       }
 
