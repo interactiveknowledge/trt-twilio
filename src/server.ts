@@ -95,13 +95,17 @@ const handleMessage = async (
             defaultCallingCode: '1'
           })
           const formattedUrl = getClinicFormattedUrl(closestClinic)
-          messages.push(`We found a nearby clinic to your location ${currentZipCode}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl} If this location is not correct reply with a closer 5-digit ZIP code.`)
+          let messageToSend = `We found a nearby clinic to your location ${currentZipCode}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl}`
 
           // Offer option to find next closest clinic.
           if (clinics.length > 1) {
             endUser.next_closest = clinics[1]
-            messages.push(`Would you like to see the next closest clinic? Reply "Y"`)
+            messageToSend += `
+            
+            Would you like to see the next closest clinic? Reply "Y"`
           }
+
+          messages.push(messageToSend)
         }
       }
     }
@@ -121,13 +125,17 @@ const handleMessage = async (
             defaultCallingCode: '1'
           })
           const formattedUrl = getClinicFormattedUrl(closestClinic)
-          messages.push(`We found a nearby clinic to your location ${zipCode}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl}`)
+          let messageToSend = `We found a nearby clinic to your location ${zipCode}: ${closestClinic.name}. ${phoneNumber?.formatNational()}.${formattedUrl}`
         
           // Offer option to find next closest clinic.
           if (clinics.length > 1) {
             endUser.next_closest = clinics[1]
-            messages.push(`Would you like to see the next closest clinic? Reply "Y"`)
+            messageToSend += `
+            
+            Would you like to see the next closest clinic? Reply "Y"`
           }
+
+          messages.push(messageToSend)
         }   
       }
       else {
